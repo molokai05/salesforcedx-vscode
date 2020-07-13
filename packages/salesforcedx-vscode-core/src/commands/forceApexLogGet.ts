@@ -43,53 +43,6 @@ import {
 } from './util';
 // import { ApexLibraryExecutor } from './util/apexCommandlet';
 
-export class GetLogApexGatherer implements ParametersGatherer<{ Id: string }> {
-  public async gather(): Promise<
-    CancelResponse | ContinueResponse<{ Id: string }>
-  > {
-    const cancellationTokenSource = new vscode.CancellationTokenSource();
-    const logInfos = await ForceApexLogList.getLogs(cancellationTokenSource);
-    if (logInfos.length > 0) {
-      const logItems = logInfos.map(logInfo => {
-        const icon = '$(file-text) ';
-        const localUTCDate = new Date(logInfo.StartTime);
-        const localDateFormatted = localUTCDate.toLocaleDateString(
-          undefined,
-          optionYYYYMMddHHmmss
-        );
-
-        return {
-          id: logInfo.Id,
-          label: icon + logInfo.LogUser.Name + ' - ' + logInfo.Operation,
-          startTime: localDateFormatted,
-          detail: localDateFormatted + ' - ' + logInfo.Status.substr(0, 150),
-          description: `${(logInfo.LogLength / 1024).toFixed(2)} KB`
-        } as ApexDebugLogItem;
-      });
-      const logItem = await vscode.window.showQuickPick(
-        logItems,
-        { placeHolder: nls.localize('force_apex_log_get_pick_log_text') },
-        cancellationTokenSource.token
-      );
-      if (logItem) {
-        return {
-          type: 'CONTINUE',
-          data: { Id: logItem.id }
-        };
-      }
-    } else {
-      return {
-        type: 'CANCEL',
-        msg: nls.localize('force_apex_log_get_no_logs_text')
-      } as CancelResponse;
-    }
-    return { type: 'CANCEL' };
-  }
-}
-
-const workspaceChecker = new SfdxWorkspaceChecker();
-const parameterGatherer = new GetLogApexGatherer();
-
 export class ApexLibraryGetLogsExecutor extends ApexLibraryExecutor {
   protected logService: LogService | undefined;
 
@@ -275,6 +228,50 @@ interface ApexDebugLogItem extends vscode.QuickPickItem {
   startTime: string;
 }
 
+export class LogFileSelector implements ParametersGatherer<{ Id: string }> {
+  public async gather(): Promise<
+    CancelResponse | ContinueResponse<{ Id: string }>
+  > {
+    const cancellationTokenSource = new vscode.CancellationTokenSource();
+    const logInfos = await ForceApexLogList.getLogs(cancellationTokenSource);
+    if (logInfos.length > 0) {
+      const logItems = logInfos.map(logInfo => {
+        const icon = '$(file-text) ';
+        const localUTCDate = new Date(logInfo.StartTime);
+        const localDateFormatted = localUTCDate.toLocaleDateString(
+          undefined,
+          optionYYYYMMddHHmmss
+        );
+
+        return {
+          id: logInfo.Id,
+          label: icon + logInfo.LogUser.Name + ' - ' + logInfo.Operation,
+          startTime: localDateFormatted,
+          detail: localDateFormatted + ' - ' + logInfo.Status.substr(0, 150),
+          description: `${(logInfo.LogLength / 1024).toFixed(2)} KB`
+        } as ApexDebugLogItem;
+      });
+      const logItem = await vscode.window.showQuickPick(
+        logItems,
+        { placeHolder: nls.localize('force_apex_log_get_pick_log_text') },
+        cancellationTokenSource.token
+      );
+      if (logItem) {
+        return {
+          type: 'CONTINUE',
+          data: { Id: logItem.id }
+        };
+      }
+    } else {
+      return {
+        type: 'CANCEL',
+        msg: nls.localize('force_apex_log_get_no_logs_text')
+      } as CancelResponse;
+    }
+    return { type: 'CANCEL' };
+  }
+}
+
 export class ForceApexLogList {
   public static async getLogs(
     cancellationTokenSource: vscode.CancellationTokenSource
@@ -310,6 +307,9 @@ export class ForceApexLogList {
     }
   }
 }
+
+const workspaceChecker = new SfdxWorkspaceChecker();
+const parameterGatherer = new LogFileSelector();
 
 export async function forceApexLogGet() {
   const commandlet = new SfdxCommandlet(
