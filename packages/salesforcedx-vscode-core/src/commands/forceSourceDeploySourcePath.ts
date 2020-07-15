@@ -23,12 +23,12 @@ import { SfdxProjectConfig } from '../sfdxProject';
 import { telemetryService } from '../telemetry';
 import { BaseDeployExecutor, DeployType } from './baseDeployCommand';
 import { SourcePathChecker } from './forceSourceRetrieveSourcePath';
-import {
-  APEX_CLASS_EXTENSION,
-  APEX_TRIGGER_EXTENSION,
-  VISUALFORCE_COMPONENT_EXTENSION,
-  VISUALFORCE_PAGE_EXTENSION
-} from './templates/metadataTypeConstants';
+// import {
+//   APEX_CLASS_EXTENSION,
+//   APEX_TRIGGER_EXTENSION,
+//   VISUALFORCE_COMPONENT_EXTENSION,
+//   VISUALFORCE_PAGE_EXTENSION
+// } from './templates/metadataTypeConstants';
 import {
   DeployRetrieveLibraryExecutor,
   FilePathGatherer,

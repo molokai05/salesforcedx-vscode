@@ -5,8 +5,7 @@
  * For full license text, see LICENSE.txt file in the repo root or https://opensource.org/licenses/BSD-3-Clause
  */
 import { LogService } from '@salesforce/apex-node';
-import { OrgAuthInfo } from '../util/authInfo';
-
+import { Connection } from '@salesforce/core';
 import {
   CliCommandExecutor,
   Command,
@@ -17,6 +16,7 @@ import {
   getYYYYMMddHHmmssDateFormat,
   optionYYYYMMddHHmmss
 } from '@salesforce/salesforcedx-utils-vscode/out/src/date';
+import { OrgAuthInfo } from '../util/authInfo';
 
 import {
   CancelResponse,
@@ -46,18 +46,7 @@ import {
 export class ApexLibraryGetLogsExecutor extends ApexLibraryExecutor {
   protected logService: LogService | undefined;
 
-  public async build(
-    executionName: string,
-    telemetryName: string
-  ): Promise<void> {
-    this.executionName = executionName;
-    this.telemetryName = telemetryName;
-
-    const usernameOrAlias = await OrgAuthInfo.getDefaultUsernameOrAlias(true);
-    if (!usernameOrAlias) {
-      throw new Error(nls.localize('error_no_default_username'));
-    }
-    const conn = await OrgAuthInfo.getConnection(usernameOrAlias);
+  public createService(conn: Connection): void {
     this.logService = new LogService(conn);
   }
 
@@ -95,35 +84,6 @@ export class ApexLibraryGetLogsExecutor extends ApexLibraryExecutor {
       notificationService.showFailedExecution(this.executionName!);
       channelService.appendLine(e.message);
     }
-  }
-
-  public getLogsWrapper(fn: (...args: any[]) => Promise<string[]>) {
-    const commandName = this.executionName;
-
-    return async function(...args: any[]): Promise<string[]> {
-      channelService.showCommandWithTimestamp(`Starting ${commandName}`);
-
-      const result = await vscode.window.withProgress(
-        {
-          title: commandName,
-          location: vscode.ProgressLocation.Notification
-        },
-        async () => {
-          // @ts-ignore
-          return (await fn.call(this, ...args)) as string[];
-        }
-      );
-
-      channelService.showCommandWithTimestamp(`Finished ${commandName}`);
-
-      const logPath = path.join(`${args[0].outputDir}`, `${args[0].logId}.txt`);
-      const document = await vscode.workspace.openTextDocument(logPath);
-      vscode.window.showTextDocument(document);
-
-      // Notification successful message
-
-      return result;
-    };
   }
 }
 
