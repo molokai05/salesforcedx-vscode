@@ -4,30 +4,17 @@
  * Licensed under the BSD 3-Clause license.
  * For full license text, see LICENSE.txt file in the repo root or https://opensource.org/licenses/BSD-3-Clause
  */
-import { AuthInfo, ConfigAggregator, Connection } from '@salesforce/core';
-import { MockTestOrgData, testSetup } from '@salesforce/core/lib/testSetup';
-import {
-  CancelResponse,
-  ContinueResponse,
-  ParametersGatherer
-} from '@salesforce/salesforcedx-utils-vscode/out/src/types';
-import { fail } from 'assert';
+
 import { expect } from 'chai';
 import * as sinon from 'sinon';
-import { createSandbox, SinonSandbox } from 'sinon';
 import * as vscode from 'vscode';
 import {
   ApexDebugLogObject,
-  ApexLibraryGetLogsExecutor,
+  ForceApexLogGetExecutor,
   ForceApexLogList,
   LogFileSelector
 } from '../../../src/commands/forceApexLogGet';
-import {
-  CompositeParametersGatherer,
-  SfdxCommandlet
-} from '../../../src/commands/util';
 import { nls } from '../../../src/messages';
-import { getRootWorkspacePath, OrgAuthInfo } from '../../../src/util';
 
 // tslint:disable:no-unused-expression
 describe('Force Apex Log Get Logging', () => {
@@ -94,20 +81,20 @@ describe('Force Apex Log Get Logging', () => {
     showQuickPickStub.restore();
   });
 
-  // it('Should build the start logging command and only have description set', () => {
-  //   const LOG_ID = 'fakeLogId';
-  //   const apexLogGetExecutor = new ApexLibraryGetLogsExecutor();
-  //   const startLoggingCmd = apexLogGetExecutor.build({
-  //     Id: LOG_ID,
-  //     startTime: new Date().toDateString()
-  //   });
-  //   expect(startLoggingCmd.description).to.equal(
-  //     nls.localize('force_apex_log_get_text')
-  //   );
-  //   expect(startLoggingCmd.toCommand()).to.equal(
-  //     `sfdx force:apex:log:get --logid ${LOG_ID} --json --loglevel fatal`
-  //   );
-  // });
+  it('Should build the start logging command and only have description set', () => {
+    const LOG_ID = 'fakeLogId';
+    const apexLogGetExecutor = new ForceApexLogGetExecutor();
+    const startLoggingCmd = apexLogGetExecutor.build({
+      id: LOG_ID,
+      startTime: new Date().toDateString()
+    });
+    expect(startLoggingCmd.description).to.equal(
+      nls.localize('force_apex_log_get_text')
+    );
+    expect(startLoggingCmd.toCommand()).to.equal(
+      `sfdx force:apex:log:get --logid ${LOG_ID} --json --loglevel fatal`
+    );
+  });
 
   it('Should show error notification if no logs exist', async () => {
     const logFileSelector = new LogFileSelector();

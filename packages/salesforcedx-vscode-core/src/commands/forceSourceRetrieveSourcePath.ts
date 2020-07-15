@@ -32,7 +32,6 @@ import {
   createComponentCount,
   useBetaDeployRetrieve
 } from './util/betaDeployRetrieve';
-// import { LibraryCommandletExecutor } from './util/libraryCommandlet';
 
 export class ForceSourceRetrieveSourcePathExecutor extends SfdxCommandletExecutor<
   string

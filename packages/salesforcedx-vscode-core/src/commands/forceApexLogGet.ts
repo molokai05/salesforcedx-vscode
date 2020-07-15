@@ -4,6 +4,7 @@
  * Licensed under the BSD 3-Clause license.
  * For full license text, see LICENSE.txt file in the repo root or https://opensource.org/licenses/BSD-3-Clause
  */
+
 import { LogService } from '@salesforce/apex-node';
 import { Connection } from '@salesforce/core';
 import {
@@ -16,19 +17,17 @@ import {
   getYYYYMMddHHmmssDateFormat,
   optionYYYYMMddHHmmss
 } from '@salesforce/salesforcedx-utils-vscode/out/src/date';
-import { OrgAuthInfo } from '../util/authInfo';
-
 import {
   CancelResponse,
   ContinueResponse,
   ParametersGatherer
 } from '@salesforce/salesforcedx-utils-vscode/out/src/types';
-// import * as fs from 'fs';
+import * as fs from 'fs';
 import * as path from 'path';
 import { Observable } from 'rxjs/Observable';
-// import { mkdir } from 'shelljs';
+import { mkdir } from 'shelljs';
 import * as vscode from 'vscode';
-// import { CommandExecution } from '../../../salesforcedx-utils-vscode/out/src/cli/commandExecutor';
+import { CommandExecution } from '../../../salesforcedx-utils-vscode/out/src/cli/commandExecutor';
 import { channelService } from '../channels';
 import { nls } from '../messages';
 import { notificationService, ProgressNotification } from '../notifications';
@@ -38,97 +37,41 @@ import { getRootWorkspacePath } from '../util';
 import {
   ApexLibraryExecutor,
   SfdxCommandlet,
-  // SfdxCommandletExecutor,
+  SfdxCommandletExecutor,
   SfdxWorkspaceChecker
 } from './util';
-// import { ApexLibraryExecutor } from './util/apexCommandlet';
 
-export class ApexLibraryGetLogsExecutor extends ApexLibraryExecutor {
-  protected logService: LogService | undefined;
+export class ForceApexLogGetExecutor extends SfdxCommandletExecutor<
+  ApexDebugLogIdStartTime
+> {
+  public build(data: ApexDebugLogIdStartTime): Command {
+    return new SfdxCommandBuilder()
+      .withDescription(nls.localize('force_apex_log_get_text'))
+      .withArg('force:apex:log:get')
+      .withFlag('--logid', data.id)
+      .withJson()
+      .withLogName('force_apex_log_get')
+      .build();
+  }
 
-  public createService(conn: Connection): void {
-    this.logService = new LogService(conn);
+  protected attachExecution(
+    execution: CommandExecution,
+    cancellationTokenSource: vscode.CancellationTokenSource,
+    cancellationToken: vscode.CancellationToken
+  ) {
+    channelService.streamCommandStartStop(execution);
+    notificationService.reportCommandExecutionStatus(
+      execution,
+      cancellationToken
+    );
+    ProgressNotification.show(execution, cancellationTokenSource);
+    taskViewService.addCommandExecution(execution, cancellationTokenSource);
   }
 
   public async execute(
-    response: ContinueResponse<{ Id: string }>
+    response: ContinueResponse<ApexDebugLogIdStartTime>
   ): Promise<void> {
-    try {
-      await this.build(
-        nls.localize('apex_log_get_text'),
-        nls.localize('force_apex_log_get_library')
-      );
-
-      if (this.logService === undefined) {
-        throw new Error('Log Service is not established.');
-      }
-
-      this.logService.getLogs = this.getLogsWrapper(this.logService.getLogs);
-      const logDir = path.join(
-        getRootWorkspacePath(),
-        '.sfdx',
-        'tools',
-        'debug',
-        'logs'
-      );
-
-      await this.logService.getLogs({
-        ...(response.data.Id && { logId: response.data.Id }),
-        ...(logDir && { outputDir: logDir })
-      });
-    } catch (e) {
-      telemetryService.sendException(
-        nls.localize('force_apex_log_get_library'),
-        e.message
-      );
-      notificationService.showFailedExecution(this.executionName!);
-      channelService.appendLine(e.message);
-    }
-  }
-}
-
-// export class ForceApexLogGetExecutor extends SfdxCommandletExecutor<
-//   ApexDebugLogIdStartTime
-// > {
-//   public build(data: ApexDebugLogIdStartTime): Command {
-//     return new SfdxCommandBuilder()
-//       .withDescription(nls.localize('force_apex_log_get_text'))
-//       .withArg('force:apex:log:get')
-//       .withFlag('--logid', data.id)
-//       .withJson()
-//       .withLogName('force_apex_log_get')
-//       .build();
-//   }
-
-// protected attachExecution(
-//   execution: CommandExecution,
-//   cancellationTokenSource: vscode.CancellationTokenSource,
-//   cancellationToken: vscode.CancellationToken
-// ) {
-//   channelService.streamCommandStartStop(execution);
-//   notificationService.reportCommandExecutionStatus(
-//     execution,
-//     cancellationToken
-//   );
-//   ProgressNotification.show(execution, cancellationTokenSource);
-//   taskViewService.addCommandExecution(execution, cancellationTokenSource);
-// }
-
-// public async execute(
-//   response: ContinueResponse<ApexDebugLogIdStartTime>
-// ): Promise<void> {
-//   const usernameOrAlias = await OrgAuthInfo.getDefaultUsernameOrAlias(true);
-//   if (!usernameOrAlias) {
-//     throw new Error(nls.localize('error_no_default_username'));
-//   }
-//   const conn = await OrgAuthInfo.getConnection(usernameOrAlias);
-//   const apexService = new LogService(conn);
-//   const logs = await apexService.getLogs({
-//     numberOfLogs: 2
-//   });
-//   console.log(logs);
-
-/*const startTime = process.hrtime();
+    const startTime = process.hrtime();
     const cancellationTokenSource = new vscode.CancellationTokenSource();
     const cancellationToken = cancellationTokenSource.token;
     const execution = new CliCommandExecutor(this.build(response.data), {
@@ -161,8 +104,8 @@ export class ApexLibraryGetLogsExecutor extends ApexLibraryExecutor {
       const document = await vscode.workspace.openTextDocument(logPath);
       vscode.window.showTextDocument(document);
     }
-  }*/
-// }
+  }
+}
 
 export type ApexDebugLogIdStartTime = {
   id: string;
@@ -188,9 +131,10 @@ interface ApexDebugLogItem extends vscode.QuickPickItem {
   startTime: string;
 }
 
-export class LogFileSelector implements ParametersGatherer<{ Id: string }> {
+export class LogFileSelector
+  implements ParametersGatherer<ApexDebugLogIdStartTime> {
   public async gather(): Promise<
-    CancelResponse | ContinueResponse<{ Id: string }>
+    CancelResponse | ContinueResponse<ApexDebugLogIdStartTime>
   > {
     const cancellationTokenSource = new vscode.CancellationTokenSource();
     const logInfos = await ForceApexLogList.getLogs(cancellationTokenSource);
@@ -219,7 +163,7 @@ export class LogFileSelector implements ParametersGatherer<{ Id: string }> {
       if (logItem) {
         return {
           type: 'CONTINUE',
-          data: { Id: logItem.id }
+          data: { id: logItem.id, startTime: logItem.startTime! }
         };
       }
     } else {
@@ -271,11 +215,55 @@ export class ForceApexLogList {
 const workspaceChecker = new SfdxWorkspaceChecker();
 const parameterGatherer = new LogFileSelector();
 
-export async function forceApexLogGet() {
+export async function forceApexLogGet(explorerDir?: any) {
   const commandlet = new SfdxCommandlet(
     workspaceChecker,
     parameterGatherer,
-    new ApexLibraryGetLogsExecutor()
+    new ForceApexLogGetExecutor()
   );
   await commandlet.run();
+}
+
+export class ApexLibraryGetLogsExecutor extends ApexLibraryExecutor {
+  protected logService: LogService | undefined;
+
+  public createService(conn: Connection): void {
+    this.logService = new LogService(conn);
+  }
+
+  public async execute(
+    response: ContinueResponse<{ Id: string }>
+  ): Promise<void> {
+    try {
+      await this.build(
+        nls.localize('apex_log_get_text'),
+        nls.localize('force_apex_log_get_library')
+      );
+
+      if (this.logService === undefined) {
+        throw new Error('Log Service is not established.');
+      }
+
+      this.logService.getLogs = this.getLogsWrapper(this.logService.getLogs);
+      const logDir = path.join(
+        getRootWorkspacePath(),
+        '.sfdx',
+        'tools',
+        'debug',
+        'logs'
+      );
+
+      await this.logService.getLogs({
+        ...(response.data.Id && { logId: response.data.Id }),
+        ...(logDir && { outputDir: logDir })
+      });
+    } catch (e) {
+      telemetryService.sendException(
+        nls.localize('force_apex_log_get_library'),
+        e.message
+      );
+      notificationService.showFailedExecution(this.executionName!);
+      channelService.appendLine(e.message);
+    }
+  }
 }

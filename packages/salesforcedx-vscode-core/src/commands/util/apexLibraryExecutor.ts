@@ -17,10 +17,7 @@ import { OrgAuthInfo } from '../../util';
 import { formatExecuteResult } from './apexLibraryResultFormatter';
 import { LibraryCommandletExecutor } from './libraryCommandlet';
 
-export abstract class ApexLibraryExecutor extends LibraryCommandletExecutor<{
-  fileName: string;
-  Id: string;
-}> {
+export abstract class ApexLibraryExecutor extends LibraryCommandletExecutor<{}> {
   public static errorCollection = languages.createDiagnosticCollection(
     'apex-errors'
   );
