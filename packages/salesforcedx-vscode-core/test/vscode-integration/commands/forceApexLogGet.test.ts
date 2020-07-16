@@ -16,8 +16,7 @@ import {
   forceApexLogGet,
   ForceApexLogGetExecutor,
   ForceApexLogList,
-  LogFileSelector,
-  LogGetGatherer
+  LogFileSelector
 } from '../../../src/commands/forceApexLogGet';
 import { nls } from '../../../src/messages';
 import { sfdxCoreSettings } from '../../../src/settings';
@@ -132,7 +131,6 @@ describe('use CLI Command setting', async () => {
   let settingStub: SinonStub;
   let apexLogGetStub: SinonStub;
   let cliExecutorStub: SinonStub;
-  let logGetGather: SinonStub;
   let fileSelector: SinonStub;
 
   beforeEach(async () => {
@@ -140,9 +138,6 @@ describe('use CLI Command setting', async () => {
     settingStub = sb.stub(sfdxCoreSettings, 'getApexLibrary');
     apexLogGetStub = sb.stub(ApexLibraryGetLogsExecutor.prototype, 'execute');
     cliExecutorStub = sb.stub(ForceApexLogGetExecutor.prototype, 'execute');
-    logGetGather = sb
-      .stub(LogGetGatherer.prototype, 'gather')
-      .returns({ type: 'CONTINUE' } as ContinueResponse<{}>);
     fileSelector = sb
       .stub(LogFileSelector.prototype, 'gather')
       .returns({ type: 'CONTINUE' } as ContinueResponse<{}>);
@@ -152,21 +147,19 @@ describe('use CLI Command setting', async () => {
     sb.restore();
   });
 
-  it('should use the ApexLibraryGetLogsExecutor if setting is false', async () => {
+  it('should use the ApexLibraryGetLogsExecutor if setting is true', async () => {
     settingStub.returns(true);
     await forceApexLogGet();
     expect(apexLogGetStub.calledOnce).to.be.true;
-    expect(logGetGather.calledOnce).to.be.true;
     expect(cliExecutorStub.called).to.be.false;
-    expect(fileSelector.called).to.be.false;
+    expect(fileSelector.called).to.be.true;
   });
 
-  it('should use the ForceApexLogGetExecutor if setting is true', async () => {
+  it('should use the ForceApexLogGetExecutor if setting is false', async () => {
     settingStub.returns(false);
     await forceApexLogGet();
     expect(cliExecutorStub.calledOnce).to.be.true;
     expect(fileSelector.calledOnce).to.be.true;
     expect(apexLogGetStub.called).to.be.false;
-    expect(logGetGather.called).to.be.false;
   });
 });

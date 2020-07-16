@@ -214,39 +214,6 @@ export class ForceApexLogList {
   }
 }
 
-export class LogGetGatherer implements ParametersGatherer<{ Id: string }> {
-  public async gather(): Promise<
-    CancelResponse | ContinueResponse<{ Id: string }>
-  > {
-    const cancellationTokenSource = new vscode.CancellationTokenSource();
-    const logInfos = await ForceApexLogList.getLogs(cancellationTokenSource);
-    if (logInfos.length > 0) {
-      const logItems = logInfos.map(logInfo => {
-        return {
-          id: logInfo.Id
-        } as ApexDebugLogItem;
-      });
-      const logItem = await vscode.window.showQuickPick(
-        logItems,
-        { placeHolder: nls.localize('force_apex_log_get_pick_log_text') },
-        cancellationTokenSource.token
-      );
-      if (logItem) {
-        return {
-          type: 'CONTINUE',
-          data: { Id: logItem.id }
-        };
-      }
-    } else {
-      return {
-        type: 'CANCEL',
-        msg: nls.localize('force_apex_log_get_no_logs_text')
-      } as CancelResponse;
-    }
-    return { type: 'CANCEL' };
-  }
-}
-
 export class ApexLibraryGetLogsExecutor extends ApexLibraryExecutor {
   protected logService: LogService | undefined;
 
@@ -255,7 +222,7 @@ export class ApexLibraryGetLogsExecutor extends ApexLibraryExecutor {
   }
 
   public async execute(
-    response: ContinueResponse<{ Id: string }>
+    response: ContinueResponse<{ id: string }>
   ): Promise<void> {
     try {
       await this.build(
@@ -268,7 +235,7 @@ export class ApexLibraryGetLogsExecutor extends ApexLibraryExecutor {
       }
 
       this.logService.getLogs = this.getLogsWrapper(this.logService.getLogs);
-      const id = response.data.Id;
+      const id = response.data.id;
       const logDir = path.join(
         getRootWorkspacePath(),
         '.sfdx',
@@ -292,9 +259,7 @@ export class ApexLibraryGetLogsExecutor extends ApexLibraryExecutor {
 }
 
 export async function forceApexLogGet(explorerDir?: any) {
-  const parameterGatherer = sfdxCoreSettings.getApexLibrary()
-    ? new LogGetGatherer()
-    : new LogFileSelector();
+  const parameterGatherer = new LogFileSelector();
   const logGetExecutor = sfdxCoreSettings.getApexLibrary()
     ? new ApexLibraryGetLogsExecutor()
     : new ForceApexLogGetExecutor();

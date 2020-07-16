@@ -28,7 +28,7 @@
     "@salesforce/core": "2.5.1",
     "@salesforce/salesforcedx-utils-vscode": "49.1.0",
     "@salesforce/source-deploy-retrieve": "1.0.15",
-    "@salesforce/apex-node": "0.0.2",
+    "@salesforce/apex-node": "0.0.3",
     "adm-zip": "0.4.13",
     "applicationinsights": "1.0.7",
     "glob": "^7.1.2",
@@ -797,11 +797,6 @@
           "type": "boolean",
           "default": false,
           "description": "%conflict_detection_enabled_description%"
-        },
-        "salesforcedx-vscode-core.experimental.deployRetrieve": {
-          "type": "boolean",
-          "default": false,
-          "description": "%experimental_deploy_retrieve_description%"
         },
         "salesforcedx-vscode-core.experimental.useApexLibrary": {
           "type": "boolean",
