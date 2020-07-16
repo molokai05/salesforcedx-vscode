@@ -268,6 +268,7 @@ export class ApexLibraryGetLogsExecutor extends ApexLibraryExecutor {
       }
 
       this.logService.getLogs = this.getLogsWrapper(this.logService.getLogs);
+      const id = response.data.Id;
       const logDir = path.join(
         getRootWorkspacePath(),
         '.sfdx',
@@ -277,8 +278,8 @@ export class ApexLibraryGetLogsExecutor extends ApexLibraryExecutor {
       );
 
       await this.logService.getLogs({
-        ...(response.data.Id && { logId: response.data.Id }),
-        ...(logDir && { outputDir: logDir })
+        logId: id,
+        outputDir: logDir
       });
     } catch (e) {
       telemetryService.sendException(
