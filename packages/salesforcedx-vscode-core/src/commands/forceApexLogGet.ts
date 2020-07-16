@@ -31,11 +31,13 @@ import { CommandExecution } from '../../../salesforcedx-utils-vscode/out/src/cli
 import { channelService } from '../channels';
 import { nls } from '../messages';
 import { notificationService, ProgressNotification } from '../notifications';
+import { sfdxCoreSettings } from '../settings';
 import { taskViewService } from '../statuses';
 import { telemetryService } from '../telemetry';
 import { getRootWorkspacePath } from '../util';
 import {
   ApexLibraryExecutor,
+  CommandletExecutor,
   SfdxCommandlet,
   SfdxCommandletExecutor,
   SfdxWorkspaceChecker
@@ -212,16 +214,37 @@ export class ForceApexLogList {
   }
 }
 
-const workspaceChecker = new SfdxWorkspaceChecker();
-const parameterGatherer = new LogFileSelector();
-
-export async function forceApexLogGet(explorerDir?: any) {
-  const commandlet = new SfdxCommandlet(
-    workspaceChecker,
-    parameterGatherer,
-    new ForceApexLogGetExecutor()
-  );
-  await commandlet.run();
+export class LogGetGatherer implements ParametersGatherer<{ Id: string }> {
+  public async gather(): Promise<
+    CancelResponse | ContinueResponse<{ Id: string }>
+  > {
+    const cancellationTokenSource = new vscode.CancellationTokenSource();
+    const logInfos = await ForceApexLogList.getLogs(cancellationTokenSource);
+    if (logInfos.length > 0) {
+      const logItems = logInfos.map(logInfo => {
+        return {
+          id: logInfo.Id
+        } as ApexDebugLogItem;
+      });
+      const logItem = await vscode.window.showQuickPick(
+        logItems,
+        { placeHolder: nls.localize('force_apex_log_get_pick_log_text') },
+        cancellationTokenSource.token
+      );
+      if (logItem) {
+        return {
+          type: 'CONTINUE',
+          data: { Id: logItem.id }
+        };
+      }
+    } else {
+      return {
+        type: 'CANCEL',
+        msg: nls.localize('force_apex_log_get_no_logs_text')
+      } as CancelResponse;
+    }
+    return { type: 'CANCEL' };
+  }
 }
 
 export class ApexLibraryGetLogsExecutor extends ApexLibraryExecutor {
@@ -266,4 +289,20 @@ export class ApexLibraryGetLogsExecutor extends ApexLibraryExecutor {
       channelService.appendLine(e.message);
     }
   }
+}
+
+export async function forceApexLogGet(explorerDir?: any) {
+  const parameterGatherer = sfdxCoreSettings.getApexLibrary()
+    ? new LogGetGatherer()
+    : new LogFileSelector();
+  const logGetExecutor = sfdxCoreSettings.getApexLibrary()
+    ? new ApexLibraryGetLogsExecutor()
+    : new ForceApexLogGetExecutor();
+
+  const commandlet = new SfdxCommandlet(
+    new SfdxWorkspaceChecker(),
+    parameterGatherer as ParametersGatherer<{}>,
+    logGetExecutor as CommandletExecutor<{}>
+  );
+  await commandlet.run();
 }
