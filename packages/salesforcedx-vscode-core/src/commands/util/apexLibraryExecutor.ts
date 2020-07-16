@@ -104,7 +104,7 @@ export abstract class ApexLibraryExecutor extends LibraryCommandletExecutor<{}> 
       const logPath = path.join(`${args[0].outputDir}`, `${args[0].logId}.txt`);
       const document = await vscode.workspace.openTextDocument(logPath);
       vscode.window.showTextDocument(document);
-      notificationService.showSuccessfulExecution(commandName);
+      await notificationService.showSuccessfulExecution(commandName);
       return result;
     };
   }
