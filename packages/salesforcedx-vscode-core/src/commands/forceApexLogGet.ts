@@ -275,7 +275,7 @@ export class ApexLibraryGetLogsExecutor extends ApexLibraryExecutor {
         'tools',
         'debug',
         'logs'
-      ); 
+      );
       await this.logService.getLogs({
         logId: id,
         outputDir: logDir
