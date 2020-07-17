@@ -266,8 +266,8 @@ export async function forceApexLogGet(explorerDir?: any) {
 
   const commandlet = new SfdxCommandlet(
     new SfdxWorkspaceChecker(),
-    parameterGatherer as ParametersGatherer<{}>,
-    logGetExecutor as CommandletExecutor<{}>
+    parameterGatherer,
+    logGetExecutor
   );
   await commandlet.run();
 }
