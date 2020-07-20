@@ -101,7 +101,7 @@ export abstract class ApexLibraryExecutor extends LibraryCommandletExecutor<{}> 
 
       channelService.showCommandWithTimestamp(`Finished ${commandName}`);
 
-      const logPath = path.join(`${args[0].outputDir}`, `${args[0].logId}.txt`);
+      const logPath = path.join(`${args[0].outputDir}`, `${args[0].logId}.log`);
       const document = await vscode.workspace.openTextDocument(logPath);
       vscode.window.showTextDocument(document);
       await notificationService.showSuccessfulExecution(commandName);
